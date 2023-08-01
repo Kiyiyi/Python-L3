@@ -15,24 +15,18 @@ TEXT_COLOR = (255, 255, 255)  # The color of the text (white)
 SNAKE_SIZE = 20  # The size of the snake segments and food items
 FPS = 15  # The speed of the game (frames per second)
 
-# Create the game window
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
-
-# Define the Snake class
 class Snake:
 	def __init__(self):
-		# Initialize the snake's position and speed
+		# Set initial position and speed
 		self.position = [[300, 300], [320, 300], [340, 300]]
 		self.speed = [0, 0]
 
 	def move(self):
-		# Track tail (aka tail popped off of list when prefixing a new position to list)
-		# Adding 1 to head and popping one from tail. Like tank treads.
 		tail = self.position[-1]
 		self.position = [[self.position[0][0] + self.speed[0],
 						  self.position[0][1] + self.speed[1]]] + self.position[:-1]
-		return tail  # useful for when snake eats the food. We append to position list.
+		return tail
 
 	def eat(self, food_position, tail):
 		if self.position[0] == food_position:
@@ -46,12 +40,20 @@ class Snake:
 			pygame.draw.rect(screen, SNAKE_COLOR, pygame.Rect(position[0], position[1], SNAKE_SIZE, SNAKE_SIZE))
 
 
-# Define a function to check if the game is over
+# functions
 def is_game_over(snake):
 	# The game is over if the snake's head is outside the screen or if the snake's head is in its body
 	return snake.position[0] in snake.position[1:] or \
 		   snake.position[0][0] not in range(0, WIDTH, SNAKE_SIZE) or \
 		   snake.position[0][1] not in range(0, HEIGHT, SNAKE_SIZE)
+
+
+def generate_food(snake):
+	position = [(random.randrange(0, WIDTH // SNAKE_SIZE)) * SNAKE_SIZE,
+				 (random.randrange(0, HEIGHT // SNAKE_SIZE)) * SNAKE_SIZE]
+	if position in snake.position:
+		position = generate_food(snake)
+	return position	
 
 
 # Define a function to display the start screen
@@ -84,14 +86,6 @@ def start_screen(snake):
 					snake.position = [[300, 300], [280, 300], [260, 300]]  # Reset the snake's position
 					snake.speed = [SNAKE_SIZE, 0]  # Go right
 					return
-
-
-# Define a function to display the score
-def display_score(score):
-	# Display the score at the top left of the screen
-	font = pygame.font.Font(None, 36)
-	score_text = font.render('Score: ' + str(score), True, TEXT_COLOR)
-	screen.blit(score_text, (10, 10))
 
 
 # Define a function to handle events
@@ -130,8 +124,7 @@ def update_game_state(snake, food_position):
 	food_eaten = snake.eat(food_position, tail)
 	# If the food was eaten, generate a new food position
 	if food_eaten:
-		food_position = [(random.randrange(0, WIDTH // SNAKE_SIZE)) * SNAKE_SIZE,
-						 (random.randrange(0, HEIGHT // SNAKE_SIZE)) * SNAKE_SIZE]
+		food_position = generate_food(snake)
 	return food_position, food_eaten
 
 
@@ -143,10 +136,13 @@ def draw_game_objects(snake, food_position):
 	pygame.draw.rect(screen, FOOD_COLOR, pygame.Rect(food_position[0], food_position[1], SNAKE_SIZE, SNAKE_SIZE))
 
 
-# Initialize the snake and the food
+# Create the game window
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
 snake = Snake()
-food_position = [(random.randrange(0, WIDTH // SNAKE_SIZE)) * SNAKE_SIZE,
-				 (random.randrange(0, HEIGHT // SNAKE_SIZE)) * SNAKE_SIZE]
+food_position = generate_food(snake)
+
+
 
 # Main game loop
 while True:
@@ -154,13 +150,10 @@ while True:
 	process_events(snake)
 	food_position, food_eaten = update_game_state(snake, food_position)
 	draw_game_objects(snake, food_position)
-	# Display the score
-	score = len(snake.position) - 3
-	display_score(score)
+	# Update the display
 	pygame.display.update()
 	# Check for game over
 	if is_game_over(snake):
 		snake = Snake()
 		start_screen(snake)
-	# Control the game speed
 	pygame.time.Clock().tick(FPS)
